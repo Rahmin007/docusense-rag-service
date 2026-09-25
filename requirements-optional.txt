@@ -1,0 +1,5 @@
+# Only needed for EMBEDDING_PROVIDER=sentence_transformer.
+# Kept separate because it pulls in PyTorch (several GB), which would slow
+# down the Docker build and CI for the default offline configuration.
+-r requirements.txt
+sentence-transformers>=3.0,<6.0

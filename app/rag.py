@@ -115,24 +115,40 @@ class RAGService:
         if not accepted:
             return QueryResponse(answer=FALLBACK_MESSAGE, sources=[], tokens_used=0)
 
-        # The offline extractive provider is intentionally conservative: at
-        # least one meaningful question term must be present in the evidence.
-        # The OpenAI path relies on the structured support/citation gate below.
+        # The offline extractive provider is intentionally conservative: most
+        # of the question's meaningful terms must appear (as whole words) in the
+        # retrieved evidence. A single incidental overlap such as "limit" vs
+        # "limited" is not enough to count as support.
+        # The OpenAI/Anthropic paths rely on the structured support/citation gate below.
         if self.answerer.name == "extractive":
             import re
+
+            def normalize(word: str) -> str:
+                word = word.lower()
+                for suffix in ("ies", "ed", "es", "s"):
+                    if word.endswith(suffix) and len(word) - len(suffix) >= 4:
+                        return word[: -len(suffix)] + ("y" if suffix == "ies" else "")
+                return word
+
             stopwords = {
                 "what", "is", "the", "a", "an", "of", "on", "for", "to",
                 "and", "or", "how", "long", "are", "does", "do", "in", "with",
                 "policy", "period", "periods", "tell", "me", "please", "can",
+                "who", "when", "where", "which", "why", "many", "much", "there",
+                "our", "your", "any", "about",
             }
             q_terms = {
-                token.lower()
+                normalize(token)
                 for token in re.findall(r"[A-Za-z0-9]+", question)
                 if len(token) > 2 and token.lower() not in stopwords
             }
-            evidence = " ".join(item.chunk.text.lower() for item in accepted)
-            lexical_hits = sum(1 for term in q_terms if term in evidence or term.rstrip("s") in evidence)
-            if q_terms and lexical_hits == 0:
+            evidence_words = {
+                normalize(token)
+                for item in accepted
+                for token in re.findall(r"[A-Za-z0-9]+", item.chunk.text)
+            }
+            lexical_hits = len(q_terms & evidence_words)
+            if q_terms and lexical_hits / len(q_terms) < 0.5:
                 return QueryResponse(answer=FALLBACK_MESSAGE, sources=sources, tokens_used=0)
 
         try:

@@ -4,6 +4,9 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      # Optional: the app falls back to the offline TF-IDF + extractive defaults
+      # when no .env exists, so a fresh clone runs with `docker compose up --build`.
+      - path: .env
+        required: false
     volumes:
       - ./data:/app/data

@@ -251,6 +251,12 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+To use the Sentence Transformers embedding provider, install the optional extras instead (this pulls in PyTorch):
+
+```bash
+pip install -r requirements-optional.txt
+```
+
 ### 4. Configure environment variables
 
 Create a `.env` file based on `.env.example`.
@@ -455,7 +461,7 @@ The API will be available at:
 http://localhost:8000
 ```
 
-The same environment-variable configuration described above can be supplied through `.env`.
+The same environment-variable configuration described above can be supplied through `.env`. The `.env` file is optional: without it, the container runs with the offline TF-IDF + extractive defaults, so no API key is needed.
 
 ---
 
